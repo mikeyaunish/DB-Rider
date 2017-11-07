@@ -1,0 +1,7 @@
+
+report-name "total-prices.r" 
+report-foundation %total-prices.datr 
+report-type "total-prices" 
+arguments [] 
+setup [] 
+group-totals-on-rows [17]

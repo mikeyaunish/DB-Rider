@@ -1,0 +1,25 @@
+report-type ""              
+report-name "" 
+report-foundation ""        
+setup [ ]
+arguments [ ] 
+query [
+                            
+] 
+layout [
+                            
+] 
+
+underlay [
+    all-records-loop [
+        [
+            before-loop [ ] 
+            in-loop [ ] 
+        ]
+    ]
+    group-on-column [] 
+    total-on-columns [] 
+    at-each-total-on-columns-line [] 
+    extended-totals [[]]
+    finish-up []
+]

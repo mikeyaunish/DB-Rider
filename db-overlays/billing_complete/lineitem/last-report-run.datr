@@ -1,0 +1,7 @@
+
+report-name "inventory-remaining.r" 
+report-foundation %inventory-remaining.datr 
+report-type "inventory-remaining" 
+arguments [item-id: 1] 
+setup [] 
+group-totals-on-rows [5]

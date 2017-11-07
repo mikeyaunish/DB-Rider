@@ -1,0 +1,6 @@
+[heading "FirstName" data [FirstName] format [info 100 edge [size: 1x1] left]] 
+[heading "LastName" data [LastName] format [info 100 edge [size: 1x1] left]] 
+[heading "Address" data [to-human "Address"] format [info 180 edge [size: 1x1] left]] 
+[heading "Email" data [Email] format [info 120 edge [size: 1x1] left]] 
+[heading "Company" data [to-human "Company"] format [info 180 edge [size: 1x1] left]] 
+[heading "Phone" data [Phone] format [info 90 edge [size: 1x1] left]]

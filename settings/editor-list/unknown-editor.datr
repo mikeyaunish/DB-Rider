@@ -1,0 +1,2 @@
+plain-edit    [ editor-program " " quote-char file-to-edit quote-char ]
+position-edit [ editor-program " " quote-char file-to-edit quote-char ]

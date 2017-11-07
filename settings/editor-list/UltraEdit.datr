@@ -1,0 +1,2 @@
+plain-edit    [ editor-program  { /foi } quote-char file-to-edit quote-char ]
+position-edit [  editor-program { /foi } quote-char file-to-edit {/} line-number {/} column-number quote-char   ]

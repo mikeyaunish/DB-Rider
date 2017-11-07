@@ -1,0 +1,7 @@
+
+report-name "inventory-remaining" 
+report-foundation %temp-report-foundation.datr 
+report-type "inventory-remaining" 
+arguments [] 
+setup [] 
+group-totals-on-rows []

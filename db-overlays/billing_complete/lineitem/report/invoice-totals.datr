@@ -1,0 +1,66 @@
+report-type "invoice-totals" 
+report-name "invoice-totals" 
+report-foundation %invoice-totals.datr 
+setup [
+    tax-rate: .05
+    accum-total: 0
+] 
+arguments [] 
+query [{SELECT * FROM lineitem WHERE ID > '0' ORDER BY Invoice ASC }] 
+layout [
+    [heading "Date" data [Date] format [info 80 edge [size: 0x1] left]] 
+    [heading "Invoice" data [to-human "Invoice"] format [info 80 edge [size: 1x1] right]] 
+    [heading "Company" data [to-human "Company"] format [info 130 edge [size: 1x1] left]] 
+    [heading "Type" data [to-human "Type"] format [info 80 edge [size: 1x1] left]] 
+    [heading "Item" data [to-human "Item"] format [info 140 edge [size: 1x1] left]] 
+    [heading "Quantity" data [Quantity] format [info 70 edge [size: 1x1] right]] 
+    [heading "Description" data [Description] format [info 220 edge [size: 1x1] left]]
+    [heading "Unit-Price" data [""] format [info 80 edge [size: 1x1] right]] 
+    [heading "Amount" data [""] format [info 80 edge [size: 1x1] right]]  
+    [heading "Invoice-tax" data [""] format [info 100 edge [size: 1x1] right]]  
+    [heading "Invoice-Total" data [""] format [info 100 edge [size: 1x1] right]]    
+] 
+underlay [
+    all-records-loop [
+        [
+            before-loop [] 
+            in-loop [
+                item-rec: first query-db/run-sql/return-block rejoin [ { select Item from lineitem where ID = } get-record-id ]
+                unit-price: first query-db/run-sql/return-block rejoin [ { select Price from item where ID = } item-rec/item ]
+                set-field "Unit-Price" unit-price/price
+                set-field "Amount" format ( (to-safe-decimal get-field "quantity") * ( to-safe-decimal unit-price/price) ) #.2                
+            ]
+        ]
+    ] 
+    group-on-column ["Invoice"] 
+    total-on-columns [
+        "Amount"    #.2
+    ] 
+    
+    extended-totals [
+        []
+    ] 
+    
+    at-each-total-on-columns-line [
+        inv-amt: (to-safe-decimal (get-field "Amount"))
+        set-field "Invoice-Tax" format ( inv-amt * tax-rate) #.2
+        inv-total: ( inv-amt + (inv-amt * tax-rate) )
+        set-field "Invoice-Total" format  inv-total #.2
+        accum-total: accum-total + inv-total
+    ] 
+
+    extended-totals [
+        "Amount" "extTotals"
+    ] 
+    
+    finish-up [
+        add-row [
+            "Invoice-Total" "___________"
+        ]
+        add-row [
+            "Invoice-Tax" "Grand Total"
+            "Invoice-total" format accum-total #0.2.24
+            
+        ]
+    ]
+]

@@ -1,0 +1,6 @@
+[heading "Description" data [Description] format [field 220 edge [size: 1x1] left]] 
+[heading "PartNo" data [PartNo] format [field 120 edge [size: 1x1] left]] 
+[heading "Price" data [format to-decimal Price #0.2.24] format [info 80 edge [size: 1x1] right]] 
+[heading "Type" data [to-human "Type"] format [info 80 edge [size: 1x1] left]] 
+[heading "Company" data [to-human "Company"] format [info 180 edge [size: 1x1] left]] 
+[heading "PoNo" data [PoNo] format [field 120 edge [size: 1x1] left]]

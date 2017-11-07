@@ -1,0 +1,67 @@
+
+report-type "display-invoice" 
+report-name "display-invoice" 
+report-foundation %display-invoice.datr 
+setup [] 
+arguments [ invoice-num ] 
+
+query  [
+    rejoin [{SELECT * FROM lineitem WHERE Invoice = '} invoice-num {' ORDER by Invoice ASC }] 
+]
+
+layout [
+    [heading "Company" data [to-human "Company"] format [info 100 edge [size: 1x1] left]] 
+    [heading "Invoice" data [to-human "Invoice"] format [info 60 edge [size: 1x1] right]] 
+    [heading "Quantity" data [ Quantity ] format [info 80 edge [size: 1x1] right]] 
+    [heading "Date" data [Date] format [info 80 edge [size: 1x1] left]] 
+    [heading "Item" data [to-human "Item"] format [info 150 edge [size: 1x1] left]] 
+    [heading "Type" data [to-human "Type"] format [info 80 edge [size: 1x1] center ]] 
+    [heading "Description" data [Description] format [field 280 edge [size: 1x1] left]] 
+    [heading "Unit-Price" data [""] format [info 80 edge [size: 1x1] right]] 
+    [heading "Amount" data [""] format [info 80 edge [size: 1x1] right]] 
+] 
+underlay [
+    all-records-loop [
+        [
+            before-loop [
+                company-name: get-field "Company"
+                invoice-number: get-field "Invoice"
+            ] 
+            in-loop [
+                item-rec: first query-db/run-sql/return-block rejoin [ { select Item from lineitem where ID = } get-record-id ]
+                unit-price: first query-db/run-sql/return-block rejoin [ { select Price from item where ID = } item-rec/item ]
+                set-field "Unit-Price" unit-price/price
+                set-field "Amount" format (( (to-safe-decimal get-field "quantity") * ( to-safe-decimal unit-price/price) )) #.2
+            ] 
+        ]
+    ] 
+    group-on-column  [ "Invoice"     ] 
+    total-on-columns [ "Amount" #0.2 ]
+
+    at-each-total-on-columns-line [
+        
+    ] 
+    
+    
+    finish-up [
+        inv-tot: to-safe-decimal get-column-total "Amount"
+        gst-tot: inv-tot * .05
+        grand-tot: inv-tot + gst-tot
+        add-row [ 
+            "Unit-Price" "GST:" 
+            "Amount" gst-tot #0.2
+        ]
+        add-row [
+            "Amount" "_______"
+        ]
+        
+        add-row [ 
+            "Description" rejoin [ "COMPANY: " company-name ]
+            "Unit-Price"  "TOTAL:" 
+            "Amount"      grand-tot #0.2.24
+        ]
+        add-row [
+            "Description" rejoin [ "INVOICE NUMBER: " invoice-number ] 
+        ]    
+    ]
+]
