@@ -60,7 +60,6 @@ do-all-scripts-in-folder join root-path %community-scripts/ root-path
 do-all-scripts-in-folder join root-path %program-scripts/ root-path
 do-safe join root-path %menu/menu-config.r  reduce [ "menu-config.r script" join root-path %menu/menu-config.r ]
 drop-down-img: load %images/drop-down6.gif
-uvalidated: copy "" ; global for unit testing 
 redrawing-virtual: false
 
 db-rider-context: context [
@@ -75,6 +74,7 @@ db-rider-context: context [
         return e
     ]
     db-visit-history: copy []
+    set-field-history: copy []
     virtual-box-size: 630x380
     results: copy []
     db-obj: make object! [
@@ -1466,6 +1466,7 @@ last-actions: {on-duplicate-record [
             over-virtual-box?: false
             edit-event-handler: func [face event ] [
                 if (event/face/text = "Edit Record") [
+                    db-rider-context/set-field-history: copy []
                     switch event/type [
                         scroll-line [ 
                             if (over-virtual-box?) [
@@ -1679,7 +1680,7 @@ last-actions: {on-duplicate-record [
             if redrawing-virtual [
                 ; ************ START SETUP CODE FOR ALL FIELD ACTIONS
                 this-field: form the-field-name 
-                next-field: rejoin [ "_next_field_" this-field ]
+                next-field: get-next-field-name this-field
                 edit-db/current-edit-field-name: this-field
                 edit-db/current-edit-row: the-current-id: ( reduce the-row-number)
                 edit-db/current-edit-field-data: ( reduce current-field-value )
@@ -2113,7 +2114,7 @@ last-actions: {on-duplicate-record [
         code-block-name [ string! ]
     ][ 
         this-field: form field-id                           ; global variable to this context
-        next-field: rejoin [ "_next_field_" this-field ]    ; global variable to this context
+        next-field: get-next-field-name this-field
         edit-db/current-edit-field-name: this-field
         edit-db/current-edit-row: the-current-id: Row-ID
         edit-db/current-edit-field-data: orig-field-data
@@ -2134,11 +2135,6 @@ last-actions: {on-duplicate-record [
         /local  rec-num fi fd item-no
     ]
     [
-        
-        if ((copy/part field-name 12 ) = "_next_field_") [
-            next-field: true
-            field-name: copy skip field-name 12
-        ]
         if next-field [
             field-name: get-next-field-name field-name
         ]
@@ -2175,12 +2171,21 @@ last-actions: {on-duplicate-record [
         [catch]
         field-name  ; accepts db-field-name format
         value 
-        /local copy-value the-name j field-details fdfn field-datatype on-return-code faf fa fnd fnd-on set-field-lo-field-name set-field-again-string
+        /local copy-value the-name j field-details fdfn field-datatype on-return-code faf fa fnd fnd-on set-field-lo-field-name set-field-again-string z prestr
 
     ][
         throw-on-error [
             field-name: to-string field-name
-            field-name: to-string field-name
+            if (found? find set-field-history field-name) [
+                append set-field-history field-name
+                set-field-history: map-each z set-field-history [ 
+                    either (z = field-name) [prestr: ">> "] [ prestr: ""]
+                    rejoin [ prestr z "^/" ] 
+                ]
+                throw make error! rejoin [ {Infinite 'set-field' loop detected on field name: '} field-name "'.^/Here is the sequence of set-field names:^/^/" set-field-history  ]
+                return 
+            ]
+            append set-field-history field-name
             if (field-name = "ID") [ return ]
             set-field-lo-field-name: rejoin [ "-" field-name ]
             copy-value: copy to-string value
@@ -2204,8 +2209,11 @@ last-actions: {on-duplicate-record [
                 ]
             ]
             set-field-again-string: rejoin [ {set-field "} field-name {"} ]
-            if (found? find mold on-return-code set-field-again-string ) [ 
-                on-return-code: [] ; to avoid an infinite loop
+            if any [ 
+                (found? find mold on-return-code set-field-again-string ) 
+                (found? find mold on-return-code "set-field this-field" ) 
+             ][ 
+                on-return-code: [] ; to avoid being caught by the infinite loop catcher and allow a field to set itself ONCE
             ]
             process-field/update :field-name edit-db edit-db/current-record-number value field-datatype on-return-code
         ]
