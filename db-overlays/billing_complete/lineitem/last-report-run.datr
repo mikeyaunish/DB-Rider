@@ -1,7 +1,7 @@
 
-report-name "inventory-remaining.r" 
-report-foundation %inventory-remaining.datr 
-report-type "inventory-remaining" 
-arguments [item-id: 1] 
+report-name "display-invoice.r" 
+report-foundation %display-invoice.datr 
+report-type "display-invoice" 
+arguments [invoice-num: 62] 
 setup [] 
-group-totals-on-rows [5]
+group-totals-on-rows [4]

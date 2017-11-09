@@ -1,1 +1,1 @@
-"SELECT * FROM lineitem WHERE Item = '1' "
+{SELECT * FROM lineitem WHERE Invoice = '62' ORDER by Invoice ASC }
