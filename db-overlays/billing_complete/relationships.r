@@ -7,13 +7,6 @@
     field-requester-prompt "Select an address"
 ] [
     source-table "company" 
-    source-field "BillThru" 
-    target-table "company" 
-    target-field "ID" 
-    human-readable-target-field ["Name"] 
-    field-requester-prompt "Select a company"
-] [
-    source-table "company" 
     source-field "MainContact" 
     target-table "person" 
     target-field "ID" 
