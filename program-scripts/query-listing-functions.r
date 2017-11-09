@@ -91,16 +91,16 @@ create-new-listing-layout: func [
     small-size: 75x20
     big-size: 200x20
     total-size: 100x20
-    rel-field-list: query-db/get-related-field-list
+    rel-field-list: any [ (select query-db/get-related-field-list query-db/table) ([]) ]
     foreach i fd [
         if (i/1 <> "ID") [
             the-gadget:  [ info 80 edge [size: 1x1] left ]       
             case [
                 any [ ( found? find i/2 "varchar" ) ( found? find i/2 "blob" ) ] [
-                    the-gadget: [ info 120 edge [size: 1x1] left ] 
+                    the-gadget: [ info 140 edge [size: 1x1] left ] 
                 ]
-                ( find-in-array-at rel-field-list 1 i/1 ) [
-                    the-gadget: [ info 150 edge [size: 1x1] left ] 
+                (select rel-field-list i/1 ) [
+                    the-gadget: [ info 170 edge [size: 1x1] left ] 
                 ]
             ]
             row-block: copy []
