@@ -488,6 +488,19 @@ error-matrix: [ ; msg & code must be the first two entries in the matrix !!!
                         error-detail: rejoin [ "Infinite loop created using 'set-field'^/Near: [" mold/flat/only/all error-obj/near "]"]
                     ]
     ]
+    [
+          msg       {set-field infinite loop}
+         code       800
+         type       'user
+           id       'message
+         arg1       {Infinite 'set-field' loop detected on field name}
+     recovery       [
+                        error-detail: rejoin [ error-obj/arg1 "^/Near: [" mold/flat/only/all error-obj/near "]"]
+                    ]
+    ]
+    
+    
+    
 ] ; END error-matrix
 
 show-error-details: func [ 
