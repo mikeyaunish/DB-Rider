@@ -3,7 +3,7 @@ REBOL [
     Filename: %DB-Rider.r
     Author:  "Mike Yaunish"
     Copyright: "2017 - Mike Yaunish"
-    Version: 0.7.0
+    Version: "See GitHub" 
     Maturity: 'alpha-release
     Home: https://github.com/mikeyaunish/DB-Rider.git
     License: {
@@ -38,6 +38,7 @@ REBOL [
         OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.	
     }
 	History: [
+	    See github for all of the Versions of DB-Rider
         03-Nov-2017 0.7.0 "First public Alpha release"
 	]
 ]
@@ -166,7 +167,10 @@ db-rider-context: context [
             return res-code 
         ]
         insert-code-into-field-actions: func [ 
-            source-code [ string!]  location-block [block!]  the-code [ string!] id-string [ string! ]
+            source-code [ string!]  
+            location-block [block!]  
+            the-code [ string!] 
+            id-string [ string! ]
             /local i entry-exists? search-at common-actions linked-actions non-linked-actions last-actions
         ]
         [
@@ -632,7 +636,7 @@ last-actions: {on-duplicate-record [
                 either exists? relationships-file [
                     related-field-list: parse-related-field-list relationships-file
                     if ((modified? relationships-file) > last-checked-relationships/get )[
-                        update-relationship-assist-actions
+                        update-relationship-assist-actions/reload
                     ]
                 ][
                 ]
@@ -641,7 +645,7 @@ last-actions: {on-duplicate-record [
         ]
         update-relationship-assist-actions: func [
             /reload
-            /local semicolon quote open-curly close-curly tta code-body
+            /local semicolon quote open-curly close-curly tta code-body initial-table
         ]
         [
             create-code: func [
@@ -671,15 +675,15 @@ last-actions: {on-duplicate-record [
                 return reduce [ code header-string ]
             ]
             ; END create-code ***********************************************
+            initial-table: copy table 
             relationships-file: join (clean-path overlay-path) rejoin [ database  "/relationships.r" ]
             if ( exists? relationships-file ) [
-                if any [ ( (modified? relationships-file) > last-checked-relationships/get ) ( reload ) ] [
-                    either reload [
+                if any [ ( ( modified? relationships-file) > last-checked-relationships/get ) ( reload ) ] [
                     ][
-                    ]
                     rf: load relationships-file
                     last-checked-relationships/set
                     foreach rfe rf [
+                        table: rfe/source-table
                         if (rfe/source-table = table) [
                             code-vals: create-code rfe
                             the-code: first code-vals
@@ -698,7 +702,8 @@ last-actions: {on-duplicate-record [
                             ][
                             ]
                         ]
-                    ]
+                    ] ; end foreach loop
+                    table: copy initial-table
                 ]
             ]
         ] ; END update-relationship-assist-actions
@@ -3936,6 +3941,11 @@ start-db-rider: func [
     ]
     over-mainlist?: false
     query-event-handler: func [face event] [
+        if (event/face/text = "Edit Relationship") [
+            if event/type = 'close [
+                query-db/update-relationship-assist-actions/reload
+            ]
+        ]        
         switch event/type [
             scroll-line [ 
                 if all [ (over-mainlist?) (event/face/text = "DB-Rider") ] [
@@ -3954,6 +3964,7 @@ start-db-rider: func [
                 ]
             ]
         ]
+        
         return event
     ]
     insert-event-func :query-event-handler
