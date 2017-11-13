@@ -1,1 +1,1 @@
-{SELECT * FROM lineitem WHERE Invoice = '62' ORDER by Invoice ASC }
+{SELECT * FROM lineitem WHERE ID > '0' ORDER BY ID DESC LIMIT 40 }

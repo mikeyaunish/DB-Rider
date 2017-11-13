@@ -1085,8 +1085,6 @@ run-relationship-editor: func [
         ][
             hrtf: copy ""
         ]
-        
-                        
         new-editor-lay: compose/deep [
             across
             space 0x10
