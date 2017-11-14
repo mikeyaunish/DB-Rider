@@ -9,13 +9,23 @@ DB-Rider is a framework to work with a MySQL database that allows custom applica
 ## Requirements
 
 DB-Rider requires that you have the following: 
-1.) MySQL Server  
-2.) Rebol V2.0
-3.) Text Editor
+1. MySQL Server  
+2. Rebol V2.0
+3. Text Editor
 
 ## Installation
 
 Read the file  'DB-Rider Getting Started and Tutorial.pdf' in the documentation folder
+
+## Video Demonstrations and Tutorials
+
+[Youtube DB-Rider Videos] (https://www.youtube.com/playlist?list=PLY20GX5h0jqEDcQNvfDcyoiHi5bTrkMO2)
+
+
+## Built With
+..* Rebol V2.0
+..* Many Rebol community scripts (see the "community-scripts" folder)
+..* MySQL & MySQL Workbench
 
 ## Options
 
