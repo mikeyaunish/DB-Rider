@@ -3,7 +3,8 @@ REBOL [
     Filename: %DB-Rider.r
     Author:  "Mike Yaunish"
     Copyright: "2017 - Mike Yaunish"
-    Version: "See GitHub" 
+    Version: 0.7.0.3 
+    Version-Notes: "See github for version details"
     Maturity: 'alpha-release
     Home: https://github.com/mikeyaunish/DB-Rider.git
     License: {
@@ -65,15 +66,6 @@ redrawing-virtual: false
 
 db-rider-context: context [
     F5-field-actions-block: [] ; global in this context to be able to handle request-db-list and F5 calling of F5-field-actions-func
-    close-handler: func [f e] [
-        if ( e/type = 'close ) [
-            remove-event-func :close-handler
-            remove-event-func :edit-event-handler
-            hide duplicate-text
-            db-visit-history: copy []
-        ]
-        return e
-    ]
     db-visit-history: copy []
     set-field-history: copy []
     virtual-box-size: 630x380
@@ -1462,7 +1454,6 @@ last-actions: {on-duplicate-record [
             ]
         ]		
         do [ ; edit-record-layout setup ``
-            insert-event-func :close-handler
             set 'close-edit-record-window does [ ; close-edit-record-window:
                 hide duplicate-text
                 db-visit-history: copy []
@@ -1470,7 +1461,7 @@ last-actions: {on-duplicate-record [
             ]
             over-virtual-box?: false
             edit-event-handler: func [face event ] [
-                if (event/face/text = "Edit Record") [
+                if all [ (event/face) (event/face/text = "Edit Record") ] [
                     db-rider-context/set-field-history: copy []
                     switch event/type [
                         scroll-line [ 
@@ -1489,6 +1480,9 @@ last-actions: {on-duplicate-record [
                             ][
                                 over-virtual-box?: false
                             ]
+                        ]
+                        close [
+                            close-edit-record-window
                         ]
                     ]
                 ]
@@ -2541,7 +2535,7 @@ menu-data: [
         menu [
             item "About" [
                 my-request rejoin [ 
-                    "DB-Rider Version 0.7.0" newline 
+                    "DB-Rider Version " system/script/header/version newline 
                     "BSD 3-Clause License" newline
                     "Copyright (c) 2017, Mike Yaunish" newline
                     newline
@@ -2813,11 +2807,13 @@ load-new-environment: func [ /local lsd lgd lts ]
         make-dir/deep query-db/get-select-path
         save (join query-db/get-last-select-path %last-select.datr) select-field/text
     ]
-    either (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
-        go-field/text: load lgd
-    ][
-        go-field/text: ""
-    ]
+    if (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
+        existing-go-scripts: load lgd
+        if ((type? existing-go-scripts) = string! )[
+            existing-go-scripts: reduce [ existing-go-scripts ]
+        ]
+        show-go-buttons existing-go-scripts
+    ]    
     either (exists? lts: join query-db/get-test-path %last-test-script.datr) [
         test-field/text: load lts
     ][
@@ -2827,7 +2823,7 @@ load-new-environment: func [ /local lsd lgd lts ]
         do-all-scripts-in-folder query-db/get-user-scripts-path query-db/root-path
     ]
     show test-field
-    show go-field       
+    ;show go-field       
     show report-field           
     show select-field
     show print-field
@@ -2928,15 +2924,13 @@ query-context: context [
         show v-layout
     ]
     clear-all-query-fields: does [
-        
-        go-field/text: copy ""
         field-name1/text: copy "" operand-field1/text: copy "" value-field1/text: copy "" and-or1/text: copy ""
         field-name2/text: copy "" operand-field2/text: copy "" value-field2/text: copy ""  and-or2/text: copy ""
         field-name3/text: copy "" operand-field3/text: copy "" value-field3/text: copy ""   
         order-by-field/text:  copy ""  limit-field/text:  copy "" select-field/text: copy ""
     ]        
     show-all-query-fields: does [
-        show [ go-field field-name1 operand-field1 value-field1 and-or1 ]
+        show [ field-name1 operand-field1 value-field1 and-or1 ]
         show [ field-name2 operand-field2 value-field2 and-or2 ]
         show [ field-name3 operand-field3 value-field3 order-by-field limit-field select-field ]
     ]        
@@ -3438,24 +3432,12 @@ query-context: context [
         across 
         at 0x0 app-menu: menu-bar menu menu-data menu-style winxp-style 
         return
-        space 0x0
-        label white gray 105x24 right  "GO DIRECTLY TO:" go-field: field 200x23 snow
-        go-field-button: button 23x23 drop-down-img {} [ 
-            do-requested-script/pre-do/add-button/offset query-db/get-go-path "Pick a GO action" [
-                clear-all-query-fields
-                show-all-query-fields 
-                go-field/text: request-result
-                show go-field
-                save (join query-db/get-last-go-path %last-go.datr) go-field/text
-                query-db/connection-changed?: true
-            ] [ "New Script" [ show-folder/new "go" ] "Edit Script" [ show-folder "go" ] ] (screen-offset? face)
-        ] 
-        space 8x4        
-        button "Run" 40x23  light-gray [
-            if all [ (go-field/text <> "") (go-field/text <> "none" ) ] [
-                save (join query-db/get-last-go-path %last-go.datr) go-field/text
-                go-filename: rejoin [ go-field/text ".r" ]
-                do-safe join query-db/get-go-path go-filename rejoin [ "Go script named '" go-filename "'" ]
+        space 8x4 
+        go-panel: box 890x26 effect [
+            draw [
+                pen gray
+                fill-pen 175.175.175
+                box
             ]
         ]
         return
@@ -3610,7 +3592,63 @@ query-context: context [
                     ]
                 ]
                 show main-list
-            ]     
+            ]
+            set 'go-select-button-func does [ ; go-select-button-func
+                either (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
+                    existing-go-scripts: load lgd
+                    if ((type? existing-go-scripts) = string! )[
+                        existing-go-scripts: reduce [ existing-go-scripts ]
+                    ]
+                ][
+                    existing-go-scripts: copy []
+                ]
+                script-list: make-script-list/exclude-extension query-db/get-go-path
+                if all [ 
+                    (selected-scripts: request-multi-item/preselect "Select scripts to display in the GO button panel" script-list/1 existing-go-scripts) 
+                    (selected-scripts <> []) 
+                ][
+                    save (join query-db/get-last-go-path %last-go.datr) selected-scripts
+                    show-go-buttons selected-scripts
+                ]
+            ]            
+            
+            set 'show-go-buttons func [ ; show-go-buttons:
+                script-list 
+                /local button-pane-max-width i text-size total-width
+            ][
+                gaps: 3x0
+                new-layout: copy [
+                    across
+                    space 0x0 
+                    label white 175.175.175 105x24 right  "GO DIRECTLY TO:" 
+                    space gaps
+                    go-select-button: button 24x24 drop-down-img [ go-select-button-func ]
+                    
+                    
+                ]             
+                button-panel-max-width: 766
+                total-width: 0
+                foreach i script-list [
+                    text-size: (get-text-size i 12) 
+                    text-size: to-pair reduce [ (text-size/x + 20) 24 ]
+                    total-width: total-width + text-size/x + gaps/x
+                    either ( total-width < button-panel-max-width) [
+                        append new-layout compose/deep [ 
+                            button (reduce i) (reduce text-size) font-size 12 light-gray [
+                                query-context/clear-all-query-fields
+                                query-context/show-all-query-fields 
+                                query-db/connection-changed?: true
+                                do-safe join query-db/get-go-path rejoin [ (reduce i) ".r" ] rejoin [ "Go script named '" (reduce i) "'" ]
+                            ]
+                        ]
+                    ][
+                        break
+                    ]
+                ]
+                go-panel/pane: layout/tight/offset new-layout 1x1
+                show go-panel              
+            ]            
+                 
             do-all-global-scripts
             set 'refresh-query-listing does [ ; refresh-query-listing:
                 update-main-listing/refresh query-db/run-sql query-field/text
@@ -3941,7 +3979,7 @@ start-db-rider: func [
     ]
     over-mainlist?: false
     query-event-handler: func [face event] [
-        if (event/face/text = "Edit Relationship") [
+        if all [ (event/face) (event/face/text = "Edit Relationship") ][
             if event/type = 'close [
                 query-db/update-relationship-assist-actions/reload
             ]
