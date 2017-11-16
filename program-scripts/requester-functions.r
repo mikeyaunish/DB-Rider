@@ -38,16 +38,21 @@ rebol [
 ]
 
 request-multi-item-ctx: context [
-
     set 'request-multi-item func [ ; request-multi-item:
         user-message [ string! ]
         item-list [ block! ] 
         /offset where [pair!]  "xy -- Offset of window on screen"
-        /preselect preselected [ block! ] 
+        /preselect preselected [ block! ]
+        /buttons buttons-block [ block! ] {A block of  <string>, <return value>, <Fkey> triplet.
+		            <string> = 'button text'
+		            <return value> = 'what requester returns when button clicked'
+		            <FKEY> = 'string for function key you want attached to button'
+		}        
+        
         /local my-styles collection-list collected return-value 
         rmi-main-list-data ndx data-flag l usr-msg rmi-main-list 
-        collect-text scroll-tface modify-field check-selected 
-        max-x max-y titl
+        collect-text scroll-tface modify-field check-selected bb
+        max-x max-y titl last-buttons
     ] 
     [
         my-styles: patched/styles
@@ -55,6 +60,42 @@ request-multi-item-ctx: context [
         collection-list: copy []    
         collected: copy []
         return-value: none
+        
+        bb: array/initial 2 reduce ["" "" ""] ; create an empty array to make layout happy.
+		either buttons [
+            either ((type? first  buttons-block) = block! ) [
+                ; need to copy just the number of blocks provided.
+                insert bb buttons-block
+                remove/part (skip bb (length? buttons-block) ) (length? buttons-block)
+
+            ][ ; just one button described not a block of blocks or  "bblock"
+                bb/1/1: buttons-block/1
+                bb/1/2: buttons-block/2
+                bb/1/3: buttons-block/3
+            ]
+            foreach i bb [
+                if all [ ((type? i/3 ) = string!) (i/3 <> "") ][
+                    i/3: to-lit-word i/3
+                ]
+            ]
+            last-buttons: compose/deep [
+                return
+                button ( bb/1/1 ) [ 
+                    collected: copy []
+                    foreach i collection-list [ append collected rmi-main-list-data/:i/2/text ]
+                    return-value: reduce [ (bb/1/2) collected ]
+                    hide-popup 
+                ] keycode (bb/1/3)
+                button ( bb/2/1 ) [ 
+                    collected: copy []
+                    foreach i collection-list [ append collected rmi-main-list-data/:i/2/text ]
+                    return-value: reduce [ (bb/2/2) collected ]
+                    hide-popup 
+                ] keycode (bb/2/3)
+            ]
+        ][
+            last-buttons: ""    
+        ]        
         
         rmi-main-list-data: copy []
         ndx: 0
@@ -72,7 +113,7 @@ request-multi-item-ctx: context [
                 [[data (data-flag) type "check" ID (ndx) trigger-func 'check-selected  ] [text (i)]]
             ]
         ]
-        multi-lay: layout [
+        multi-lay-block: compose [
             styles my-styles
             across
             usr-msg: text 198x32 black wrap user-message font-size 14
@@ -96,9 +137,7 @@ request-multi-item-ctx: context [
             return
             button "OK" 94x24 [
                 collected: copy []
-                foreach i collection-list [
-                    append collected rmi-main-list-data/:i/2/text
-                ]
+                foreach i collection-list [ append collected rmi-main-list-data/:i/2/text ]
                 return-value: collected
     	        hide-popup            
             ]
@@ -106,6 +145,7 @@ request-multi-item-ctx: context [
                 return-value: none
                 hide-popup
             ]
+            (last-buttons)
             do [
                 scroll-tface: func [txt bar][
                     txt/para/scroll/y: negate bar/data * (max 0 txt/user-data - txt/size/y)
@@ -125,7 +165,6 @@ request-multi-item-ctx: context [
                     remove/part back back tail collect-text/text 2
                     show collect-text
                 ]
-                
                 if preselect [
                     collection-list: copy []
                     collect-text/text: copy ""
@@ -163,7 +202,8 @@ request-multi-item-ctx: context [
                     show rmi-main-list
                 ]            
             ]
-        ]
+        ] ; end of layout
+        multi-lay: layout multi-lay-block
         either offset [
             max-x: system/view/screen-face/size/x - multi-lay/size/x - 35
             max-y: system/view/screen-face/size/y - multi-lay/size/y - 35
@@ -194,13 +234,13 @@ request-multi-item-ctx: context [
             return event
         ]
         insert-event-func :rmi-event-handler
-        
         titl: "Multi Item Selection"
     	inform/title/offset multi-lay titl where
     	remove-event-func :rmi-event-handler
     	return return-value
     ]
 ]
+
 
 open-new-context: context [ 
     fo-layout: layout [
