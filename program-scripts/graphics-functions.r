@@ -27,6 +27,14 @@ gadget-mover: make object! [
     ]
 ]
 
+get-text-size: func [
+    the-text [string!]
+    fontsize [integer!]
+][
+    layout [t: text the-text font-size fontsize ]
+    size-text t
+]
+
 set 'within-diff? func [ af ab ; within-diff:
                          /local res offset size target-diff ta
 ][ ; af = a-face ab = absolute opening
