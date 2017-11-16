@@ -31,21 +31,12 @@ comment {DB-Rider field-actions for DATABASE:'billing_complete' TABLE:'lineitem'
         set-focus "Quantity"
     ] 
     on-return [
-        if ( (get-field "item")  <> "" ) [
-            if ((b: edit-db/run-sql/return-block rejoin [" Select * from ITEM where ID = " get-field "item" ]) <> []) [
-                b: first b 
-                if ((get-field "Description") = "" ) [
-                    set-field "Description" b/Description                
-                ]
-            ]
-        ]
     ]
 ] 
 "Description" [
     on-return [
         if all [ ( (get-field "description") = "" ) ( (get-field "item")  <> ""  )] [
             if ((item-record: edit-db/run-sql/return-block rejoin [" Select * from ITEM where ID = " get-field "item" ]) <> []) [
-                print "going to set-field description"
                 set-field "Description" item-record/1/Description
             ]
         ]
