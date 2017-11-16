@@ -1,1 +1,0 @@
-{SELECT * FROM lineitem WHERE ID > '0' ORDER BY ID DESC LIMIT 40 }

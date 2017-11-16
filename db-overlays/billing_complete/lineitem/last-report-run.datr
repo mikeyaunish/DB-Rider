@@ -1,7 +1,0 @@
-
-report-name "display-invoice.r" 
-report-foundation %display-invoice.datr 
-report-type "display-invoice" 
-arguments [invoice-num: 62] 
-setup [] 
-group-totals-on-rows [4]
