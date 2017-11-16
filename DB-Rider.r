@@ -2646,6 +2646,19 @@ print-code
     ]
     if rf [
         the-db/edit-text-file rf
+        if all [ (folder-name = "go") (new)][
+            either (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
+                existing-go-scripts: load lgd
+                if ((type? existing-go-scripts) = string! )[
+                    existing-go-scripts: reduce [ existing-go-scripts ]
+                ]
+            ][
+                existing-go-scripts: copy []
+            ]            
+            append existing-go-scripts (copy set-extension/exclude s-name)
+            save (join query-db/get-last-go-path %last-go.datr) existing-go-scripts
+            show-go-buttons existing-go-scripts                
+        ]
     ]
 ]  
 
@@ -2807,12 +2820,14 @@ load-new-environment: func [ /local lsd lgd lts ]
         make-dir/deep query-db/get-select-path
         save (join query-db/get-last-select-path %last-select.datr) select-field/text
     ]
-    if (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
+    either (exists? lgd: join query-db/get-last-go-path %last-go.datr) [
         existing-go-scripts: load lgd
         if ((type? existing-go-scripts) = string! )[
             existing-go-scripts: reduce [ existing-go-scripts ]
         ]
         show-go-buttons existing-go-scripts
+    ][
+        show-go-buttons []
     ]    
     either (exists? lts: join query-db/get-test-path %last-test-script.datr) [
         test-field/text: load lts
@@ -3432,7 +3447,7 @@ query-context: context [
         across 
         at 0x0 app-menu: menu-bar menu menu-data menu-style winxp-style 
         return
-        space 8x4 
+        space 8x6 
         go-panel: box 890x26 effect [
             draw [
                 pen gray
@@ -3604,11 +3619,27 @@ query-context: context [
                 ]
                 script-list: make-script-list/exclude-extension query-db/get-go-path
                 if all [ 
-                    (selected-scripts: request-multi-item/preselect "Select scripts to display in the GO button panel" script-list/1 existing-go-scripts) 
+                    (
+                        selected-scripts: request-multi-item/preselect/buttons/offset 
+                            "Select the 'GO' scripts to display in the GO button panel" 
+                            script-list/1 
+                            existing-go-scripts
+                            [["New Script" "new-script" "F5"] [ "Edit Script" "edit-script" "F6"]]
+                            (( screen-offset? go-select-button ) + 30x-30 )
+                    ) 
                     (selected-scripts <> []) 
                 ][
-                    save (join query-db/get-last-go-path %last-go.datr) selected-scripts
-                    show-go-buttons selected-scripts
+                    switch/default selected-scripts/1 [
+                        "new-script" [
+                            show-folder/new "go"                            
+                        ]
+                        "edit-script" [
+                            show-folder "go"
+                        ]
+                    ][
+                        save (join query-db/get-last-go-path %last-go.datr) selected-scripts    
+                        show-go-buttons selected-scripts
+                    ]
                 ]
             ]            
             
@@ -3623,8 +3654,6 @@ query-context: context [
                     label white 175.175.175 105x24 right  "GO DIRECTLY TO:" 
                     space gaps
                     go-select-button: button 24x24 drop-down-img [ go-select-button-func ]
-                    
-                    
                 ]             
                 button-panel-max-width: 766
                 total-width: 0
@@ -3642,6 +3671,7 @@ query-context: context [
                             ]
                         ]
                     ][
+                        my-request {All of the existing 'GO' scripts will NOT fit on the^/'GO' button panel. You may need to move some around^/or delete some 'GO' scripts.}
                         break
                     ]
                 ]
