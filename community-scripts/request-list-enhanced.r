@@ -41,7 +41,7 @@ rebol [
                            }
         ]
         0.9.4 [ 12-Sep-2017 {
-                          - Extend the lengthe of the requester so added buttons show up better
+                          - Extend the length of the requester so added buttons show up better
             }
         ]
 
@@ -372,7 +372,7 @@ request-list-enhanced-ctx: make object! [
 		            <string> = 'button text'
 		            <return value> = 'what requester returns when button clicked'
 		            <FKEY> = 'string for function key you want attached to button'
-		            }
+		}
 		/local return-value all-strings orig-alist bb i req-width l 
 		single-click-action   search-action cb1 show? cb2 return-the-selection max-x max-y 
 		; usr-msg a-field a-text-list valid-action GLOBAL TO THIS CONTEXT
