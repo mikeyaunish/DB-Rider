@@ -250,7 +250,7 @@ open-new-context: context [
             btn-green: 51.204.0
         ]
         backcolor white
-        image %../images/open-new-v12.png 
+        image %../images/open-new-v13.png 
         
         ; Import JUST
         at ( 106x27 + roset ) button btn-green btn-size "OPEN" [ req-return [ show-folder "import" ] ]
