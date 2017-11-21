@@ -3,7 +3,7 @@ REBOL [
     Filename: %DB-Rider.r
     Author:  "Mike Yaunish"
     Copyright: "2017 - Mike Yaunish"
-    Version: 0.7.0.3 
+    Version: 0.7.1.0
     Version-Notes: "See github for version details"
     Maturity: 'alpha-release
     Home: https://github.com/mikeyaunish/DB-Rider.git
@@ -62,9 +62,10 @@ do-all-scripts-in-folder join root-path %community-scripts/ root-path
 do-all-scripts-in-folder join root-path %program-scripts/ root-path
 do-safe join root-path %menu/menu-config.r  reduce [ "menu-config.r script" join root-path %menu/menu-config.r ]
 drop-down-img: load %images/drop-down6.gif
-redrawing-virtual: false
+
 
 db-rider-context: context [
+    redrawing-virtual: false
     F5-field-actions-block: [] ; global in this context to be able to handle request-db-list and F5 calling of F5-field-actions-func
     db-visit-history: copy []
     set-field-history: copy []
@@ -109,6 +110,7 @@ db-rider-context: context [
         extended-totals-error: false
         records-to-display: "15"
         on-new-record-code: []
+        do-on-display-record-code-status: 0
         internal-folders: [ 
             "report" "print" "select" "go" "export" "import"
             "test" "function-key" "common-import" "common-export" "global-select"
@@ -625,14 +627,15 @@ last-actions: {on-duplicate-record [
         get-related-field-list: does [
             if any [ (last-table <> table) (last-database <> database ) ( related-field-list = []) ] [ ; Then we've had a major switch of table or database
                 relationships-file: join (clean-path overlay-path) rejoin [ database  "/relationships.r" ]
-                either exists? relationships-file [
+                if exists? relationships-file [
                     related-field-list: parse-related-field-list relationships-file
                     if ((modified? relationships-file) > last-checked-relationships/get )[
                         update-relationship-assist-actions/reload
                     ]
-                ][
                 ]
+                load-new-environment
             ]
+            last-table: copy table
             return related-field-list
         ]
         update-relationship-assist-actions: func [
@@ -994,7 +997,7 @@ last-actions: {on-duplicate-record [
             either no-history-field [
                 old-field: ""
             ][
-                old-field: edit-db/current-edit-field-name
+                old-field: remove copy edit-db/current-edit-field-name
             ]
 
             edit-db/set-table-name table-name
@@ -1113,8 +1116,14 @@ last-actions: {on-duplicate-record [
         ]
     ]; ******************************************** End of db-obj ***************************************************************
 
-    show-related-record: func [ 'field-id table-name key-field field-face ] [ 
-        
+    show-related-record: func [ 
+        'field-id 
+        table-name 
+        key-field 
+        field-face 
+        /local all-field-actions on-display-record-code
+    ]
+    [ 
         duplicate-flag: duplicate-text/show?
         hide duplicate-text
         field-name: to-string field-id
@@ -1125,6 +1134,7 @@ last-actions: {on-duplicate-record [
         edit-db/set-table-name table-name ; SELECT NEW TABLE
         t-sql-cmd: rejoin [ {select * from } edit-db/table " where " key-field "='" the-field-data "'" ]
         the-data: edit-db/run-sql t-sql-cmd
+        edit-db/do-on-display-record-code-status: -1 ; to compensate for create face being run twice after this function
         either the-data = [] [
             edit-db/set-table-name old-table
             z: my-request/face/buttons rejoin [ {The record that is related to the field named '} to-string field-id {'^/does NOT exist.^/SQL command =[} t-sql-cmd {]} ] field-face "Edit the Target Table"
@@ -1256,7 +1266,6 @@ last-actions: {on-duplicate-record [
         ]
         space 0x4
         label white "Table:"
-
         table-name-field: field 100x24
         space 8x4
         table-button: button 24x24 drop-down-img [
@@ -1439,7 +1448,7 @@ last-actions: {on-duplicate-record [
 		sensor 0x0 keycode [ #"^(ESC)"] [
             close-edit-record-window
 		]
-        time-sensor: sensor 0x0 rate 100 feel [
+        time-sensor: sensor 0x0 rate 1 feel [
             engage: func [face action event] [
                 if action = 'time [
                     either ( (length? db-visit-history) > 0 )[
@@ -1582,6 +1591,14 @@ last-actions: {on-duplicate-record [
             ]
         ]
         redraw-virtual virtual-box record-face
+        if ( edit-db/do-on-display-record-code-status = 1) [
+            edit-db/do-on-display-record-code-status: 0
+            all-field-actions: load edit-db/get-field-actions-filename
+            if (on-display-record-code: select all-field-actions 'on-display-record )[
+                do-safe [ (do bind on-display-record-code 'record-face ) ] 
+                    reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+            ]
+        ]            
     ]
     to-rebol-string: func [ s ] [
         either(s) [
@@ -1698,6 +1715,7 @@ last-actions: {on-duplicate-record [
         /local the-field-details primary-index-name the-data tcmd comparison new-num dtype-conversion
     ]
     [ 
+        cfedit-db/do-on-display-record-code-status: cfedit-db/do-on-display-record-code-status + 1
         time-sensor/rate: 100
         if ( not found? find system/view/screen-face/feel/event-funcs :edit-event-handler ) [
           insert-event-func :edit-event-handler              
@@ -1748,7 +1766,6 @@ last-actions: {on-duplicate-record [
                     return results
                 ][
                     my-request  rejoin [ "Create-face: Unable to retreive row-id: " row-number " or the first record. This is a unrecoverable error." ]
-                    return results
                 ]
             ]
         ]
@@ -1772,7 +1789,6 @@ last-actions: {on-duplicate-record [
             make-dir/deep first split-path field-actions-file
             field-actions: load cfedit-db/create-field-actions-initial-code cfedit-db cfedit-db/table
         ]
-        on-display-record-code: select field-actions 'on-display-record
         on-duplicate-record-code: select field-actions 'on-duplicate-record
         query-db/on-new-record-code: edit-db/on-new-record-code: select field-actions 'on-new-record
         if ( not field-actions) [
@@ -1888,9 +1904,6 @@ last-actions: {on-duplicate-record [
         do-for-face: compose [ 
             focus (:focus-here) 
         ] ; initial value for do-for-face
-        if all [ ( on-display-record-code <> [] ) ( on-display-record-code <> none ) ] [
-            append do-for-face compose/deep [ do-safe [ (on-display-record-code) ] [ "on-display-record code" (cfedit-db/get-field-actions-filename) "on-display-record" ]  ]
-        ]
         either reprocess-field-assist-button [
 
             addition: reduce [ 'do reprocess-code ]
@@ -1927,6 +1940,19 @@ last-actions: {on-duplicate-record [
                     ]
                 ]
             ]
+            key keycode #"^/" [
+                if system/view/focal-face [
+                    if (found? find (first system/view/focal-face) 'user-data )[
+                        if (found? f5-action: find  system/view/focal-face/user-data 'F5-button ) [
+                            if ( f5-action <> [F5-button []] )[
+                                plain-field-name: remove copy to-string system/view/focal-face/var
+                                hr-field-name: rejoin [ "hr" copy to-string system/view/focal-face/var ]
+                                show-related-record :plain-field-name (first (edit-db/get-related-table-for edit-db/table plain-field-name )) "ID" (get to-word hr-field-name)
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ]
         append results :addition
         results
@@ -1938,6 +1964,7 @@ last-actions: {on-duplicate-record [
         /focus-to-field focus-field-name ; db-field-name format
         /reprocess-field-assist-button reprocess-field-name
     ][
+        
         either focus-to-field [
             either reprocess-field-assist-button [
                 record-face: create-face/focus-to-field/reprocess-field-assist-button iedit-db row-id focus-field-name reprocess-field-name
@@ -2030,6 +2057,7 @@ last-actions: {on-duplicate-record [
         /reprocess-field-assist-button reprocess-field-name
         /duplicate-flag
         /new-window
+        /local all-field-actions on-display-record-code
     ]
     [
         if focus-to-field [
@@ -2059,6 +2087,14 @@ last-actions: {on-duplicate-record [
                 ]
             ]
         ]
+        if ( edit-db/do-on-display-record-code-status = 1 ) [
+            edit-db/do-on-display-record-code-status: 0
+            all-field-actions: load edit-db/get-field-actions-filename
+            if (on-display-record-code: select all-field-actions 'on-display-record )[
+                do-safe [ (do bind on-display-record-code 'record-face ) ] 
+                    reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+            ]
+        ]
     ]
 
     get-code-sample-line: func [ the-code /local i ] [
@@ -2085,7 +2121,7 @@ last-actions: {on-duplicate-record [
         either all [ ( on-new-target-record-code <> [] ) ( on-new-target-record-code <> none ) ] [
                 if select on-new-target-record-code 'source-record-actions [
                     this-field-name: trim/with form field-id "-"
-                    do-safe [ do Bind reduce on-new-target-record-code/source-record-actions 'record-face ] 
+                    do-safe [ do bind reduce on-new-target-record-code/source-record-actions 'record-face ] 
                     reduce [
                         rejoin [ "'field-actions.r' script^/     TABLE: '" edit-db/table "'^/     FIELD: '" this-field-name "'^/    ACTION: 'on-new-target-record/source-record-actions'^/"  ]
                         join edit-db/get-table-path "field-actions.r"
@@ -2134,6 +2170,9 @@ last-actions: {on-duplicate-record [
         /local  rec-num fi fd item-no
     ]
     [
+        if (not find-in-array-at edit-db/get-field-details 1 field-name)[
+            return 
+        ]
         if next-field [
             field-name: get-next-field-name field-name
         ]
@@ -2326,10 +2365,12 @@ use [ a b ] [ ; modify focus-action for the vstyles below
 ]
 
 vstyle: stylize [ ; style to support virtual field to always be seen when it is the active face
-    vfield: field with [ focus-action: func [ fa ] [ see-face fa ] ]
+    vfield: field with [ 
+        focus-action: func [ fa ] [ 
+            see-face fa 
+        ] 
+    ]
 ]
-
-
 
 menu-data: []
 winxp-menu: layout-menu/style copy menu-data winxp-style: [
@@ -2477,6 +2518,20 @@ menu-data: [
                         show-folder "function-key"
                     ]
                 ]
+            mauto-start: item "Auto Start" [
+                fa: to-file join query-db/get-settings-path %auto-start.r
+                    if not exists? fa [
+                        the-path: first split-path fa
+                        if not exists? the-path [
+                            make-dir/deep the-path
+                        ]
+                        write fa ["REBOL [^/    Title: {auto-start.r}^/    Purpose: {script to run whenever DB-Rider starts}^/]"]
+                    ]
+                    query-db/edit-text-file fa
+            ]
+
+
+            
         ]
     mreload: item "Refresh"
         menu [
@@ -2838,7 +2893,6 @@ load-new-environment: func [ /local lsd lgd lts ]
         do-all-scripts-in-folder query-db/get-user-scripts-path query-db/root-path
     ]
     show test-field
-    ;show go-field       
     show report-field           
     show select-field
     show print-field
