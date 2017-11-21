@@ -201,6 +201,7 @@ context [ ; virtual-layout
             /offset oset
             /local virt-box-size virtual-space 
     ][
+
         if ( not scroller-size ) [ scr-size: 18 ]
         virtual-margin: to-pair reduce [ scr-size scr-size ]
         virt-box-size: virt-box/size - virtual-margin
@@ -224,7 +225,7 @@ context [ ; virtual-layout
     ]
 
     set 'redraw-virtual func [ virt-box new-layout ; redraw-virtual: 
-        /local f-im virt-box-size redrawing-virtual
+        /local f-im virt-box-size ; redrawing-virtual global to db-rider-context
     ][ 
             virt-box-size: virt-box/size - virtual-margin
             redrawing-virtual: true ; This is to trigger the do block only once.
