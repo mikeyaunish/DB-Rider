@@ -56,7 +56,7 @@ view-resizable: func [
     	event
     ]
     if error? err: try [
-        do join query-db/root-path "settings/auto-start.r"
+        do if (exists? z: join query-db/root-path "settings/auto-start.r") [ z ]
         true ; to make the try happy
     ][
         the-error: disarm :err 
@@ -328,7 +328,6 @@ update-main-listing: func [
         ]
         query-db/connection-changed?: false
     ]
-    load-new-environment
 ] ; End update-main-listing
 
 get-print-block: func [ /no-id ] [
