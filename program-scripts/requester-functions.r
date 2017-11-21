@@ -889,7 +889,6 @@ request-db-list: func [
                     ; new-target-record combined with reprocess-action
     ]
     return dqr
-    
 ]
 
 do-requested-script: func [ 
