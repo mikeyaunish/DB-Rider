@@ -3,7 +3,7 @@ REBOL [
     Filename: %DB-Rider.r
     Author:  "Mike Yaunish"
     Copyright: "2017 - Mike Yaunish"
-    Version: 0.7.1.0
+    Version: 0.7.1.1
     Version-Notes: "See github for version details"
     Maturity: 'alpha-release
     Home: https://github.com/mikeyaunish/DB-Rider.git
@@ -112,9 +112,10 @@ db-rider-context: context [
         on-new-record-code: []
         do-on-display-record-code-status: 0
         internal-folders: [ 
-            "report" "print" "select" "go" "export" "import"
-            "test" "function-key" "common-import" "common-export" "global-select"
-            "global-function-key" "user-scripts" 
+            "report" "print" "select" "go" "export" "import" "test"
+            "function-key" "common-import" "common-export" 
+            "global-select" "global-function-key" "global-import" "global-export"
+            "user-scripts" 
         ]
         mysql-port: make object! [] ; port placeholder - assigned correctly after port is opened.
         create-folder-structure: func [ 
@@ -997,9 +998,8 @@ last-actions: {on-duplicate-record [
             either no-history-field [
                 old-field: ""
             ][
-                old-field: remove copy edit-db/current-edit-field-name
+                old-field: copy edit-db/current-edit-field-name
             ]
-
             edit-db/set-table-name table-name
             append/only db-visit-history reduce [ edit-db/database old-table old-record-number old-field duplicate-text/show? ] ; *** This should pick primary index data only
             edit-mysql-record edit-db row-id
@@ -1593,10 +1593,12 @@ last-actions: {on-duplicate-record [
         redraw-virtual virtual-box record-face
         if ( edit-db/do-on-display-record-code-status = 1) [
             edit-db/do-on-display-record-code-status: 0
-            all-field-actions: load edit-db/get-field-actions-filename
-            if (on-display-record-code: select all-field-actions 'on-display-record )[
-                do-safe [ (do bind on-display-record-code 'record-face ) ] 
-                    reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+            if (exists? edit-db/get-field-actions-filename) [               
+                all-field-actions: load edit-db/get-field-actions-filename
+                if (on-display-record-code: select all-field-actions 'on-display-record )[
+                    do-safe [ (do bind on-display-record-code 'record-face ) ] 
+                        reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+                ]
             ]
         ]            
     ]
@@ -2089,10 +2091,12 @@ last-actions: {on-duplicate-record [
         ]
         if ( edit-db/do-on-display-record-code-status = 1 ) [
             edit-db/do-on-display-record-code-status: 0
-            all-field-actions: load edit-db/get-field-actions-filename
-            if (on-display-record-code: select all-field-actions 'on-display-record )[
-                do-safe [ (do bind on-display-record-code 'record-face ) ] 
-                    reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+            if (exists? edit-db/get-field-actions-filename) [     
+                all-field-actions: load edit-db/get-field-actions-filename
+                if (on-display-record-code: select all-field-actions 'on-display-record )[
+                    do-safe [ (do bind on-display-record-code 'record-face ) ] 
+                        reduce [ "on-display-record code" edit-db/get-field-actions-filename "on-display-record" ]
+                ]
             ]
         ]
     ]
@@ -2108,19 +2112,19 @@ last-actions: {on-duplicate-record [
     ]
     
     set 'F5-field-actions-func func [ ; F5-field-actions-func:
-        'field-id
+        'field-id ; layout fieldname
         Row-ID
         orig-field-data
         field-actions-code
         on-new-target-record-code
         /local f5-ret this-field-name
     ][ 
-        edit-db/current-edit-field-name: to-string field-id
+        this-field-name: trim/with form field-id "-"        
+        edit-db/current-edit-field-name: to-string this-field-name
         edit-db/current-edit-row: Row-ID
         edit-db/current-edit-field-data: orig-field-data
         either all [ ( on-new-target-record-code <> [] ) ( on-new-target-record-code <> none ) ] [
                 if select on-new-target-record-code 'source-record-actions [
-                    this-field-name: trim/with form field-id "-"
                     do-safe [ do bind reduce on-new-target-record-code/source-record-actions 'record-face ] 
                     reduce [
                         rejoin [ "'field-actions.r' script^/     TABLE: '" edit-db/table "'^/     FIELD: '" this-field-name "'^/    ACTION: 'on-new-target-record/source-record-actions'^/"  ]
